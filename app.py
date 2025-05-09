@@ -310,6 +310,18 @@ if (
 
 else:
     st.warning("❌ No bullish breakout stocks found.")
+
+conn.close()
+
+# Reopen connection
+conn = sqlite3.connect("bullish_stocks.db")
+df_sql = pd.read_sql_query("SELECT * FROM bullish_breakouts ORDER BY date DESC", conn)
+st.subheader("Saved Bullish Breakouts from Database")
+st.dataframe(df_sql)
+conn.close()
+
+
+    
 # 📩 Contact Me
 st.sidebar.markdown("---")
 st.sidebar.markdown("📬 **Contact Me**")
