@@ -1,5 +1,6 @@
 import streamlit as st
 import yfinance as yf
+import sqlite3
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -241,6 +242,24 @@ def fetch_stock_data(ticker):
 
 # Automatically run the analysis
 bullish_stocks = []
+conn = sqlite3.connect("bullish_stocks.db")
+c = conn.cursor()
+
+# Create table if it doesn't exist
+c.execute("""
+CREATE TABLE IF NOT EXISTS bullish_breakouts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticker TEXT,
+    date TEXT,
+    close REAL,
+    volume INTEGER,
+    macd REAL,
+    rsi REAL,
+    ema20 REAL,
+    upper_band REAL
+)
+""")
+conn.commit()
 
 progress = st.progress(0)
 for i, t in enumerate(nifty_200):
@@ -274,10 +293,21 @@ for i, t in enumerate(nifty_200):
     progress.progress((i + 1) / len(nifty_200))
 
 # Display the results
-if bullish_stocks:
-    df_result = pd.DataFrame(bullish_stocks)
-    st.success("📋 Bullish breakout stocks detected:")
-    st.dataframe(df_result)
+if (
+    macd_val > 0 and
+    rsi_val > 50 and
+    close > ema20 and
+    close > upper_band
+):
+    bullish_stocks.append(t)
+
+    # Insert into SQL
+    c.execute("""
+        INSERT INTO bullish_breakouts (ticker, date, close, volume, macd, rsi, ema20, upper_band)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (t, data.index[-1].strftime("%Y-%m-%d"), close, volume, macd_val, rsi_val, ema20, upper_band))
+    conn.commit()
+
 else:
     st.warning("❌ No bullish breakout stocks found.")
 # 📩 Contact Me
